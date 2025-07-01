@@ -1,42 +1,54 @@
 import pandas as pd
 
-# Load the dataset
+# Path to your raw dataset
 data_path = "C:/Users/su_te/Documents/olist-ecommerce-project/data/olist_customers_dataset.csv"
-data = pd.read_csv(data_path)
 
-# Display the first few rows
-print("First few rows of the data:")
-print(data.head())
+# Load CSV with proper quoting to handle quotes in header and data
+data = pd.read_csv(
+    data_path,
+    encoding='utf-8',
+    quotechar='"',
+    delimiter=',',
+    engine='python',
+    on_bad_lines='skip'  # skip malformed lines
+)
 
-# Data summary (info)
-print("\nData summary (info):")
-print(data.info())
+# Strip quotes from column names if any remain
+data.columns = data.columns.str.strip('"')
 
-# Check for duplicates
-print("\nChecking for duplicates:")
-print(f"Number of duplicate rows: {data.duplicated().sum()}")
+print("Columns after fixing headers:")
+print(data.columns.tolist())
 
-# Remove duplicate rows (if any)
-data_cleaned = data.drop_duplicates()
+# Strip whitespace and quotes from string columns
+for col in ['customer_id', 'customer_unique_id', 'customer_zip_code_prefix', 'customer_city', 'customer_state']:
+    if col in data.columns:
+        # Convert to string, strip whitespace and quotes
+        data[col] = data[col].astype(str).str.strip().str.strip('"')
+
+# Standardize city and state formatting
+data['customer_city'] = data['customer_city'].str.title()
+data['customer_state'] = data['customer_state'].str.upper()
+
+# Fix zip code: pad with leading zeros to make sure length is 5
+data['customer_zip_code_prefix'] = data['customer_zip_code_prefix'].apply(lambda x: x.zfill(5))
 
 # Check for missing values
-print("\nChecking for missing values:")
-print(data_cleaned.isnull().sum())
+print("\nMissing values per column:")
+print(data.isnull().sum())
 
-# Optional: Standardize city and state column (capitalize first letter)
-data_cleaned['customer_city'] = data_cleaned['customer_city'].str.title()
-data_cleaned['customer_state'] = data_cleaned['customer_state'].str.upper()
+# Drop rows with any missing values
+data_cleaned = data.dropna()
 
-# Save cleaned data to a new CSV file
+# Remove duplicates
+duplicates_count = data_cleaned.duplicated().sum()
+print(f"\nDuplicates found: {duplicates_count}")
+data_cleaned = data_cleaned.drop_duplicates()
+
+# Save cleaned data to CSV
 cleaned_data_path = "C:/Users/su_te/Documents/olist-ecommerce-project/data/olist_customers_cleaned.csv"
 data_cleaned.to_csv(cleaned_data_path, index=False)
 
-# Display the first few rows of the cleaned data
-print("\nCleaned data (first few rows):")
+print("\nCleaned data preview:")
 print(data_cleaned.head())
-
-# Display data summary of cleaned data
-print("\nCleaned data summary (info):")
-print(data_cleaned.info())
 
 print(f"\nCleaned data saved to: {cleaned_data_path}")
